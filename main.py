@@ -2,6 +2,20 @@ import re
 from pprint import pp
 
 
+def find_pid_by_mfg(mfg):
+    input_file = open('SFPs_Database.csv')
+    for line in input_file:
+        data = {}
+        # print(line) # Debug not enough values to unpack.
+        # Most of the time caused from extra blank line in SFP database txt file
+        (data['type'], data['vendor'], data['mfg'], data['pid'], data['sn']) = line.split(',')
+        if data['mfg'] == mfg:
+            input_file.close()
+            return data["pid"]
+    input_file.close()
+    return "Not in Database"
+
+
 def my_findall(pattern, pattern2, pattern3, filename):
     """Finds all non-overlapping matches of the pattern in the string.
 
@@ -69,14 +83,18 @@ def my_findall(pattern, pattern2, pattern3, filename):
         start += match.end()
         
         match2 = re.search(pattern2, html_log[start:])
-        vendor = re.sub(r"Vendor PN\s+\W+\s+", "", (match2.group(0))).strip()
+        mfg = re.sub(r"Vendor PN\s+\W+\s+", "", (match2.group(0))).strip()
+
+        # lookup for sfp pid database from mfg part number read from eeprom
+        pid = find_pid_by_mfg(mfg)
 
         match3 = re.search(pattern3, html_log[start:])
         serial = re.sub(r"Vendor SN\s+\W+\s+", "", (match3.group(0))).strip()
 
         my_dict["sfp_port"] = port
-        my_dict["sfp_vendor"] = vendor
+        my_dict["sfp_mfg"] = mfg
         my_dict["sfp_serial"] = serial
+        my_dict["sfp_pid"] = pid
 
         matches.append(my_dict)
 
@@ -95,12 +113,14 @@ def my_findall(pattern, pattern2, pattern3, filename):
         start += match_missing.end()
 
         port = miss_port
-        vendor = "port_not_found"
-        serial = "port_not_found"
+        mfg = "missing sfp"
+        serial = "missing sfp"
+        pid = "missing sfp"
 
         my_dict["sfp_port"] = port
-        my_dict["sfp_vendor"] = vendor
+        my_dict["sfp_mfg"] = mfg
         my_dict["sfp_serial"] = serial
+        my_dict["sfp_pid"] = pid
 
         matches.append(my_dict)
 
